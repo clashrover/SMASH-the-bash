@@ -9,12 +9,30 @@
 
 #define str_len 100
 #include <stdio.h>
-#include <unistd.h>      //
+// fprintf()
+// printf()
+// stderr
+// getchar()
+// perror()
+#include <unistd.h>
+//chdir()
+// fork()
+// exec()
+// pid_t
 #include <string.h>      // for tokenising
+// strcmp()
+// strtok()
 #include <sys/types.h>   // for mkdir
 #include <sys/stat.h>
 #include <dirent.h>
 #include <stdlib.h>
+// malloc()
+// realloc()
+// free()
+// exit()
+// execvp()
+// EXIT_SUCCESS, EXIT_FAILURE
+#include <sys/wait.h> // for wait() 
 
 
 int make_dir(const char* str){
@@ -80,47 +98,91 @@ int change_dir(const char* path){
 	return check;
 }
 
+int print_working_dir(){
+	char cwd[str_len];
+	size_t path_len = str_len; 
+	if(getcwd(cwd,path_len)!=NULL){
+		printf("%s", cwd);
+	}else{
+		return -1;
+	}
+	return 0;
+}
+
 
 int main(){
-	char str[str_len];
-	fgets(str, str_len, stdin);
-	char* arr[3];
-	int i =0;
-	char *temp = strtok(str,"\n");
-	char *p = strtok(temp," ");
-	while(p != NULL) {
-    	//printf("%s\n", p);
-    	arr[i++] = p;
-    	p = strtok(NULL, " ");
-	}
-	// by now we have tokenised the string.
-	// at max there could be only 3 tokens seperated by " ";
-	int r=-1;
-	if(strcmp(arr[0],"cd")==0){
-		r=change_dir(arr[1]);
-	}
-	else if(strcmp(arr[0],"pwd")==0){
-		// print_working_dir();
-	}
-	else if(strcmp(arr[0],"mkdir")==0){
-		r=make_dir(arr[1]);
-	}
-	else if(strcmp(arr[0],"rmdir")==0){
-		r=remove_dir(arr[1]);
-	}
-	else if(strcmp(arr[0],"exit")==0){
-		// exit();	
-	}
-	else{
-		printf("%s\n", "sys command");
-		// execute(arr[0]);
-	}
+	// p_id = fork();
+	// if(p_id==0){
+	// 	init_program();
+	// }else{
+	// 	wait(NULL);
 
-	if (!r){
-		printf("%s\n", "Successful");
+	// }
+	system("clear"); 
+	system("clear"); 
+	printf("%s\n", "--------------------------WELCOME TO TRASH: THE BASH--------------------------");
+	int p_id = fork();  // create a child process, both child and parent process terminate when we type "exit";
+						// the parent is given wait() command, thus it will be invoked only when child process exits.
+	if(p_id==0){
+		printf("%s\n", "hi from child");
+		printf("%s :", "prompt>");
+		char str[str_len]; 
+   		fgets(str, str_len, stdin);		//take input string first time
+   		str[strlen(str)-1]=0;		//fgets() also take a trailing \n character. Solution to that, put null character at the end
+   		while(strcmp(str,"exit")!=0){
+			char* arr[3];
+			int i =0;
+			char *p = strtok(str," ");
+			while(p != NULL) {
+		    	arr[i++] = p;
+		    	p = strtok(NULL, " ");
+			}
+			// by now we have tokenised the string.
+			// at max there could be only 3 tokens seperated by " ";
+			int r=-1;
+			if(strcmp(arr[0],"cd")==0){
+				r=change_dir(arr[1]);
+			}
+			else if(strcmp(arr[0],"pwd")==0){
+				r=print_working_dir(); printf("\n");
+
+			}
+			else if(strcmp(arr[0],"mkdir")==0){
+				r=make_dir(arr[1]);
+			}
+			else if(strcmp(arr[0],"rmdir")==0){
+				r=remove_dir(arr[1]);
+			}
+			else{
+				printf("%s\n", "system command\n");
+				int p_id2 = fork();
+				if(p_id2==0){
+					printf("grandchild is here\n");
+					exit(1);
+				}else{
+					printf("child is on hold\n");
+					wait(NULL);
+					printf("child is back\n");
+				}
+			}
+
+			if (!r){
+				printf("%s\n", "Successful");
+			}else{
+				printf("%s\n", "Error");
+			}
+   			printf("%s :", "prompt>");
+   			fgets(str, str_len, stdin);     // again take the input as "exit" not typed yet
+   			str[strlen(str)-1]=0;
+   		} 
+   		exit(1);
 	}else{
-		printf("%s\n", "Error");
+		printf("%s\n", "parent goes on hold");
+		wait(NULL);
+		// printf("%s\n", "parent back on");
 	}
+	system("clear");
+	system("clear"); 
 	return 0;
 }
 
