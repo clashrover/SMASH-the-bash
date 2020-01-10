@@ -109,6 +109,18 @@ int print_working_dir(){
 	return 0;
 }
 
+int executing_files(char** arr){
+	if(strcmp(arr[1],"<")==0 && strcmp(arr[3],">")!=0){
+
+	}else if(strcmp(arr[1],">")==0){
+
+	}else if(strcmp(arr[1],"<")==0 && strcmp(arr[3],">")==0){
+
+	}else{
+		int c=execvp(arr[0],arr); // c is returning -1, but program is running somethings is fishy, need to check
+	} 
+	return 0;
+}
 
 int main(){
 	// p_id = fork();
@@ -124,13 +136,13 @@ int main(){
 	int p_id = fork();  // create a child process, both child and parent process terminate when we type "exit";
 						// the parent is given wait() command, thus it will be invoked only when child process exits.
 	if(p_id==0){
-		printf("%s\n", "hi from child");
+		//printf("%s\n", "hi from child");
 		printf("%s :", "prompt>");
 		char str[str_len]; 
    		fgets(str, str_len, stdin);		//take input string first time
    		str[strlen(str)-1]=0;		//fgets() also take a trailing \n character. Solution to that, put null character at the end
    		while(strcmp(str,"exit")!=0){
-			char* arr[3];
+			char* arr[5];
 			int i =0;
 			char *p = strtok(str," ");
 			while(p != NULL) {
@@ -154,19 +166,27 @@ int main(){
 				r=remove_dir(arr[1]);
 			}
 			else{
-				printf("%s\n", "system command\n");
+				//printf("%s\n", "system command\n");
 				int p_id2 = fork();
 				if(p_id2==0){
-					printf("grandchild is here\n");
+					//printf("grandchild is here\n")
+					executing_files(arr);
+					// this is in grand child process hence variable 'r' wont change in child process
+					// we can solve this using shared memory but i am not taking this code to that level
 					exit(1);
 				}else{
-					printf("child is on hold\n");
+					//printf("child is on hold\n");
 					wait(NULL);
-					printf("child is back\n");
+					//printf("child is back\n");
 				}
+				printf("%s :", "prompt>");
+   				fgets(str, str_len, stdin);     // again take the input as "exit" not typed yet
+   				str[strlen(str)-1]=0;
+   				continue;
+
 			}
 
-			if (!r){
+			if (r!=-1){
 				printf("%s\n", "Successful");
 			}else{
 				printf("%s\n", "Error");
@@ -177,7 +197,7 @@ int main(){
    		} 
    		exit(1);
 	}else{
-		printf("%s\n", "parent goes on hold");
+		//printf("%s\n", "parent goes on hold");
 		wait(NULL);
 		// printf("%s\n", "parent back on");
 	}

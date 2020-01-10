@@ -7,7 +7,7 @@
 int main(){
 	int p_id = fork();
 	if(p_id==0){
-		printf("%s\n", "hi from child");
+		//printf("%s\n", "hi from child");
 		char str[20]; 
 		printf("%s :", "$>");
    		fgets(str, 20, stdin);
@@ -19,8 +19,8 @@ int main(){
    		} 
    		exit(1);
 	}else{
-		printf("%s\n", "parent goes on hold");
+		//printf("%s\n", "parent goes on hold");
 		wait(NULL);
-		printf("%s\n", "parent back on");
+		//printf("%s\n", "parent back on");
 	}
 }
