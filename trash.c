@@ -113,7 +113,7 @@ int executing_files(char** arr){
 	if(strcmp(arr[1],"<")==0 && strcmp(arr[3],">")!=0){
 
 	}else if(strcmp(arr[1],">")==0){
-
+		freopen(arr[2],"w",stdout);
 	}else if(strcmp(arr[1],"<")==0 && strcmp(arr[3],">")==0){
 
 	}else{
