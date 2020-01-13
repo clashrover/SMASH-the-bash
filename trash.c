@@ -155,7 +155,38 @@ int exe_files(char** arr){
 // }
 
 void pipeline(char** arr,int size){
-	
+	//remember the child inherits open file descriptors
+	int n_files = (size+1)/2;
+	int num_pipes=n_files-1;
+	int p[2*num_pipes];
+	for(int i=0;i<num_pipes;i++){
+		if (pipe(p+2*i)<0){
+			return;
+		}
+	}
+	int i=0;
+	while(i<n_files){
+		if(fork()==0){
+			if(i>0){
+				dup2(p[2*i],0);
+			}
+			if(i<n_files-1){
+				dup2((2*i)+1,1);
+			}
+			for(int i=0;i<2*num_pipes;i++){
+				close(p[i]);
+			}
+			execvp(arr[2*i],arr);
+		}
+		i++;
+	}
+	for(int i=0;i<2*num_pipes;i++){
+		close(p[i]);
+	}
+	for(int i=0;i<n_files;i++){
+		wait(NULL);
+	}
+
 }
 
 int main(){
