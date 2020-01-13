@@ -23,7 +23,6 @@
 // strcmp()
 // strtok()
 #include <sys/types.h>   // for mkdir
-#include <sys/stat.h>
 #include <dirent.h>
 #include <stdlib.h>
 // malloc()
@@ -33,14 +32,17 @@
 // execvp()
 // EXIT_SUCCESS, EXIT_FAILURE
 #include <sys/wait.h> // for wait() 
+#include <sys/stat.h> //for open
+#include <fcntl.h>	//for open
 
 
-int make_dir(const char* str){
+void make_dir(const char* str){
 	int check = mkdir(str, 0777);
 	if (check ==0) {
 		printf("%s : %s\n", str,"Directory Created");
+		return;
 	}
-	return check;
+	printf("%s\n", "failed");
 }
 
 
@@ -85,51 +87,78 @@ int remove_dir(const char *path){
    }
    int check=-1;
    if (chk_if_dir_emp==0){
-      check = rmdir(path);								//remove the empty directory using rmdir
+    	check = rmdir(path);								//remove the empty directory using rmdir
+   		return check;
    }
    return check;
 }
 
-int change_dir(const char* path){
+void change_dir(const char* path){
 	int check  = chdir(path);
 	if(check==0){
 		printf("%s%s\n", "Directory changed to: ", path);
+	}else{
+		printf("%s\n", "failed");
 	}
-	return check;
 }
 
-int print_working_dir(){
+void print_working_dir(){
 	char cwd[str_len];
 	size_t path_len = str_len; 
 	if(getcwd(cwd,path_len)!=NULL){
 		printf("%s", cwd);
 	}else{
-		return -1;
+		printf("%s\n", "failed");
 	}
-	return 0;
 }
 
-int executing_files(char** arr){
-	if(strcmp(arr[1],"<")==0 && strcmp(arr[3],">")!=0){
-
-	}else if(strcmp(arr[1],">")==0){
-		freopen(arr[2],"w",stdout);
-	}else if(strcmp(arr[1],"<")==0 && strcmp(arr[3],">")==0){
-
+int exe_files(char** arr){
+	// don't keep any command except print after execvp because it will run only if execvp returns.
+	// The exec() family of functions replaces the current process image with a new process image.
+	// I have used file descriptors. fd0 is stdin fd1 is stdout, fd2 is stderr
+	if (fork()==0){
+		if(strcmp(arr[1],"<")==0 && strcmp(arr[3],">")!=0){
+			close(0); //releases fd0
+			open(arr[2],O_RDONLY); //read only 
+		}else if(strcmp(arr[1],">")==0){
+			close(1);
+			open(arr[2],O_WRONLY |O_CREAT, 0666);  //0666 determine access permisions
+		}else if(strcmp(arr[1],"<")==0 && strcmp(arr[3],">")==0){
+			close(0);
+			open(arr[2],O_RDONLY);
+			close(1);
+			open(arr[4],O_WRONLY |O_CREAT, 0666);
+		}
+		execvp(arr[0],arr);
+		printf("%s\n", "failed");
+		exit(1);
 	}else{
-		int c=execvp(arr[0],arr); // c is returning -1, but program is running somethings is fishy, need to check
-	} 
-	return 0;
+		wait(NULL);
+	}
+}
+
+// void pipeline(char** arr){
+// 	if(fork()==0){
+// 		int p[2];
+// 		pipe(p);
+// 		if(fork()==0){
+// 			dup2(p[0],0);
+// 			execvp(arr[2],arr);
+// 		}else{
+// 			dup2(p[1],1);
+// 			execvp(arr[0],arr);
+// 		}
+// 		printf("%s\n", "fail");
+// 	}else{
+// 		wait(NULL);
+// 	}
+// }
+
+void pipeline(char** arr,int size){
+	
 }
 
 int main(){
-	// p_id = fork();
-	// if(p_id==0){
-	// 	init_program();
-	// }else{
-	// 	wait(NULL);
-
-	// }
 	system("clear"); 
 	system("clear"); 
 	printf("%s\n", "--------------------------WELCOME TO TRASH: THE BASH--------------------------");
@@ -149,47 +178,28 @@ int main(){
 		    	arr[i++] = p;
 		    	p = strtok(NULL, " ");
 			}
+			int size=i;
 			// by now we have tokenised the string.
 			// at max there could be only 3 tokens seperated by " ";
-			int r=-1;
 			if(strcmp(arr[0],"cd")==0){
-				r=change_dir(arr[1]);
+				change_dir(arr[1]);
 			}
 			else if(strcmp(arr[0],"pwd")==0){
-				r=print_working_dir(); printf("\n");
+				print_working_dir(); printf("\n");
 
 			}
 			else if(strcmp(arr[0],"mkdir")==0){
-				r=make_dir(arr[1]);
+				make_dir(arr[1]);
 			}
 			else if(strcmp(arr[0],"rmdir")==0){
-				r=remove_dir(arr[1]);
+				int r=remove_dir(arr[1]);
+				if (r==-1){ printf("%s\n", "failed"); }
+			}
+			else if(strcmp(arr[1], "|")==0){
+				pipeline(arr,size);
 			}
 			else{
-				//printf("%s\n", "system command\n");
-				int p_id2 = fork();
-				if(p_id2==0){
-					//printf("grandchild is here\n")
-					executing_files(arr);
-					// this is in grand child process hence variable 'r' wont change in child process
-					// we can solve this using shared memory but i am not taking this code to that level
-					exit(1);
-				}else{
-					//printf("child is on hold\n");
-					wait(NULL);
-					//printf("child is back\n");
-				}
-				printf("%s :", "prompt>");
-   				fgets(str, str_len, stdin);     // again take the input as "exit" not typed yet
-   				str[strlen(str)-1]=0;
-   				continue;
-
-			}
-
-			if (r!=-1){
-				printf("%s\n", "Successful");
-			}else{
-				printf("%s\n", "Error");
+				exe_files(arr);
 			}
    			printf("%s :", "prompt>");
    			fgets(str, str_len, stdin);     // again take the input as "exit" not typed yet
@@ -197,9 +207,7 @@ int main(){
    		} 
    		exit(1);
 	}else{
-		//printf("%s\n", "parent goes on hold");
 		wait(NULL);
-		// printf("%s\n", "parent back on");
 	}
 	system("clear");
 	system("clear"); 
