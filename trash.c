@@ -135,6 +135,7 @@ int exe_files(char** arr){
 	}else{
 		wait(NULL);
 	}
+
 }
 
 // void pipeline(char** arr){
@@ -159,33 +160,74 @@ void pipeline(char** arr,int size){
 	int n_files = (size+1)/2;
 	int num_pipes=n_files-1;
 	int p[2*num_pipes];
-	for(int i=0;i<num_pipes;i++){
-		if (pipe(p+2*i)<0){
-			return;
-		}
-	}
+	// for(int i=0;i<num_pipes;i++){
+	// 	if (pipe(p+2*i)<0){
+	// 		return;
+	// 	}
+	// }
 	int i=0;
 	while(i<n_files){
+		if(i<n_files-1){
+			pipe(p+2*i);
+		}
 		if(fork()==0){
 			if(i>0){
-				dup2(p[2*i],0);
+				dup2(p[2*(i-1)],0);
+				close(p[2*(i-1)]);
+				close(p[(2*i)-1]);
 			}
 			if(i<n_files-1){
-				dup2((2*i)+1,1);
-			}
-			for(int i=0;i<2*num_pipes;i++){
-				close(p[i]);
+				close(p[2*i]);
+				dup2(p[(2*i)+1],1);
+				close(p[2*i+1]);
 			}
 			execvp(arr[2*i],arr);
+			exit(0);
+		}else{
+			if(i>0){
+				close(p[2*(i-1)]);
+				close(p[(2*i)-1]);
+			}
+			i++;
+			wait(NULL);
 		}
-		i++;
 	}
-	for(int i=0;i<2*num_pipes;i++){
-		close(p[i]);
+	for(int j = 0; j<2*num_pipes;j++){
+		close(p[j]);
 	}
-	for(int i=0;i<n_files;i++){
-		wait(NULL);
-	}
+
+
+	//./main1 | ./main2 | ./main3 | ./main4 | ./main5 | ./main6
+	// int i=0;
+	// while(i<n_files){
+	// 	if(fork()==0){
+	// 		if(i>0){
+	// 			dup2(p[2*(i-1)],0);
+	// 		}
+	// 		if(i<n_files-1){
+	// 			dup2(p[(2*i)+1],1);
+	// 		}
+	// 		for(int j=0;j<2*num_pipes;j++){
+	// 			close(p[j]);
+	// 		}
+	// 		execvp(arr[2*i],arr);
+	// 		//exit(1);
+	// 	}
+	// 	if(i>0){
+	// 		close(p[2*(i-1)]);
+	// 	}
+	// 	if(i<n_files-1){
+	// 		close(p[(2*i)+1]);
+	// 	}
+	// 	i++;
+	// 	wait(NULL);
+	// }
+	// for(int j=0;j<2*num_pipes;j++){
+	// 	close(p[j]);
+	// }
+	// // for(int j=0;j<n_files;j++){
+	// // 	wait(NULL);
+	// // }
 
 }
 
@@ -202,7 +244,7 @@ int main(){
    		fgets(str, str_len, stdin);		//take input string first time
    		str[strlen(str)-1]=0;		//fgets() also take a trailing \n character. Solution to that, put null character at the end
    		while(strcmp(str,"exit")!=0){
-			char* arr[5];
+			char* arr[100];
 			int i =0;
 			char *p = strtok(str," ");
 			while(p != NULL) {
