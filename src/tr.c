@@ -145,23 +145,6 @@ int exe_files(char** arr){
 
 }
 
-// void pipeline(char** arr){
-// 	if(fork()==0){
-// 		int p[2];
-// 		pipe(p);
-// 		if(fork()==0){
-// 			dup2(p[0],0);
-// 			execvp(arr[2],arr);
-// 		}else{
-// 			dup2(p[1],1);
-// 			execvp(arr[0],arr);
-// 		}
-// 		printf("%s\n", "fail");
-// 	}else{
-// 		wait(NULL);
-// 	}
-// }
-
 void pipeline(char** arr,int size){
 	//remember the child inherits open file descriptors
 	char* arg[100];
@@ -182,7 +165,12 @@ void pipeline(char** arr,int size){
 		if(i<n_files-1){
 			pipe(p+2*i);
 		}
-		if(fork()==0){
+		int pid=fork();
+		if(pid<0){
+			perror("fork");
+			return;
+		}
+		if(pid==0){
 			if(i>0){
 				dup2(p[2*(i-1)],0);
 				close(p[2*(i-1)]);
@@ -193,20 +181,19 @@ void pipeline(char** arr,int size){
 				dup2(p[(2*i)+1],1);
 				close(p[2*i+1]);
 			}
+			//pid_t pid = getpid();
+			//printf("\n%lu\n", pid);
 			if(execvp(arg[i],arg)<0){
 				perror("execvp in pipe");
 			}
 		}else{
-			if(i>0){
+			if(n_files>1){
 				close(p[2*(i-1)]);
 				close(p[(2*i)-1]);
 			}
 			i++;
 			wait(NULL);
 		}
-	}
-	for(int j = 0; j<2*num_pipes;j++){
-		close(p[j]);
 	}
 
 
@@ -288,7 +275,7 @@ int main(){
 				arr[size]=NULL;
 				exe_files(arr);
 			}
-   			printf("%s :", "prompt>");
+   			printf("%s", "prompt>");
    			fgets(str, str_len, stdin);     // again take the input as "exit" not typed yet
    			str[strlen(str)-1]=0;
    		} 
