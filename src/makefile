@@ -1,4 +1,5 @@
 main : tr.c
+	gcc -c run.c -o ../obj/run.o
 	gcc -c tr.c -o ../obj/main.o 
 	gcc -c p1.c -o ../obj/p1.o 
 	gcc -c p2.c -o ../obj/p2.o 

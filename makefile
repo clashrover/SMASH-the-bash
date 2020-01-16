@@ -8,6 +8,7 @@ dir_2 := obj
 dir_3 := helpers
 dir_4 := exe
 main = ./exe/main
+run := ./exe/run
 
 .PHONY: all $(dir_1) $(dir_2) $(dir_3)
 #phony basically tells make which targets are not actually files, 
@@ -21,7 +22,8 @@ $(dir_1):
 
 #command to link the objet files. '\' used for break a long command
 
-LINK: $(dir_2) $(dir_4) 
+LINK: $(dir_2) $(dir_4)
+	gcc ./obj/run.o -o ./exe/run 
 	gcc ./obj/main.o -o ./exe/main
 	gcc ./obj/p1.o -o ./exe/main1
 	gcc ./obj/p2.o -o ./exe/main2
@@ -35,7 +37,7 @@ LINK: $(dir_2) $(dir_4)
 
 RUN: 
 	@echo ".............\nRunning final exectuables\n............." 
-	@$(main)
+	@$(run)
 
 
 clean:

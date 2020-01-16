@@ -1,4 +1,4 @@
-// Welcome to trash: the bash
+// Welcome to SMASH: the bash
 
 // basic functions{
 	// o cd "dir" : changes the directory to "dir"
@@ -34,6 +34,7 @@
 #include <sys/wait.h> // for wait() 
 #include <sys/stat.h> //for open
 #include <fcntl.h>	//for open
+
 
 
 void make_dir(const char* str){
@@ -106,7 +107,7 @@ void print_working_dir(){
 	char cwd[str_len];
 	size_t path_len = str_len; 
 	if(getcwd(cwd,path_len)!=NULL){
-		printf("%s", cwd);
+		printf("Current Directory is: %s", cwd);
 	}else{
 		printf("%s\n", "failed");
 	}
@@ -136,7 +137,7 @@ int exe_files(char** arr){
 			}
 		}
 		if(execvp(arr[0],arr)<0){
-			perror("execvp() not working:");
+			perror("execvp() in exe_files");
 		}
 		exit(1);
 	}else{
@@ -147,11 +148,18 @@ int exe_files(char** arr){
 
 void pipeline(char** arr,int size){
 	//remember the child inherits open file descriptors
-	char* arg[100];
+	char* arg[1000];
+	char* dest[1];
 	int k=0;
+	int x=0;
 	for(int i=0;i<size;i++){
 		if(strcmp(arr[i],"|")==0){
 			continue;
+		}
+		if(strcmp(arr[i],">")==0){
+			x=1;
+			dest[0] = arr[i+1];
+			break;
 		}
 		arg[k]=arr[i];
 		k++;
@@ -160,17 +168,21 @@ void pipeline(char** arr,int size){
 	int i=0;
 	int n_files = k;
 	int num_pipes=k-1;
+
 	int p[2*num_pipes];
+	int child_status;
+	pid_t tpid;
 	while(i<n_files){
 		if(i<n_files-1){
 			pipe(p+2*i);
 		}
-		int pid=fork();
-		if(pid<0){
-			perror("fork");
+		pid_t child_pid;
+		child_pid = fork();
+		if(child_pid<0){
+			perror("fork in pipeline");
 			return;
 		}
-		if(pid==0){
+		if(child_pid==0){
 			if(i>0){
 				dup2(p[2*(i-1)],0);
 				close(p[2*(i-1)]);
@@ -181,13 +193,19 @@ void pipeline(char** arr,int size){
 				dup2(p[(2*i)+1],1);
 				close(p[2*i+1]);
 			}
-			//pid_t pid = getpid();
-			//printf("\n%lu\n", pid);
-			if(execvp(arg[i],arg)<0){
-				perror("execvp in pipe");
+			if(i==n_files-1 && x==1){
+				close(1);
+				if(open(dest[0],O_WRONLY |O_CREAT, 0666)<0){
+					perror("open");
+				}  //0666 determine access permisions
+				execvp(arg[i],arg);
+				exit(0);
 			}
+			execvp(arg[i],arg);
+			perror("execvp in pipe");
+			exit(0);
 		}else{
-			if(n_files>1){
+			if(i>0){
 				close(p[2*(i-1)]);
 				close(p[(2*i)-1]);
 			}
@@ -196,55 +214,24 @@ void pipeline(char** arr,int size){
 		}
 	}
 
-
-	//./main1 | ./main2 | ./main3 | ./main4 | ./main5 | ./main6
-	// int i=0;
-	// while(i<n_files){
-	// 	if(fork()==0){
-	// 		if(i>0){
-	// 			dup2(p[2*(i-1)],0);
-	// 		}
-	// 		if(i<n_files-1){
-	// 			dup2(p[(2*i)+1],1);
-	// 		}
-	// 		for(int j=0;j<2*num_pipes;j++){
-	// 			close(p[j]);
-	// 		}
-	// 		execvp(arr[2*i],arr);
-	// 		//exit(1);
-	// 	}
-	// 	if(i>0){
-	// 		close(p[2*(i-1)]);
-	// 	}
-	// 	if(i<n_files-1){
-	// 		close(p[(2*i)+1]);
-	// 	}
-	// 	i++;
-	// 	wait(NULL);
-	// }
-	// for(int j=0;j<2*num_pipes;j++){
-	// 	close(p[j]);
-	// }
-	// // for(int j=0;j<n_files;j++){
-	// // 	wait(NULL);
-	// // }
-
 }
+
+
 
 int main(){
 	system("clear"); 
 	system("clear"); 
-	printf("%s\n", "--------------------------WELCOME TO TRASH: THE BASH--------------------------");
-	int p_id = fork();  // create a child process, both child and parent process terminate when we type "exit";
+	printf("%s\n", "--------------------------WELCOME TO SMASH: THE BASH--------------------------");
+	//int p_id = fork();  // create a child process, both child and parent process terminate when we type "exit";
 						// the parent is given wait() command, thus it will be invoked only when child process exits.
-	if(p_id==0){
+	//if(p_id==0){
 		//printf("%s\n", "hi from child");
-		printf("%s :", "prompt>");
+		printf("%s: ", "$>");
 		char str[str_len]; 
    		fgets(str, str_len, stdin);		//take input string first time
    		str[strlen(str)-1]=0;		//fgets() also take a trailing \n character. Solution to that, put null character at the end
    		while(strcmp(str,"exit")!=0){
-			char* arr[100];
+			char* arr[1000];
 			int i =0;
 			char *p = strtok(str," ");
 			while(p != NULL) {
@@ -254,7 +241,18 @@ int main(){
 			int size=i;
 			// by now we have tokenised the string.
 			// at max there could be only 3 tokens seperated by " ";
-			if(strcmp(arr[0],"cd")==0){
+			if(strcmp(arr[0],"help")==0){
+				printf("%s\n", "----------HELP---------");
+				printf("%s\n", "-----Basic Functions-----");
+				printf("%s\n", "o cd [dir] : changes the current directory to 'dir'");
+				printf("%s\n", "o pwd : prints the current directory");
+				printf("%s\n", "o mkdir [dir] : creates a directory named 'dir'");
+				printf("%s\n", "o rmdir [dir] : removes the non-empty/empty directory name 'dir'");
+				printf("%s\n", "o file1 | file2 pipes output of file1 to file2");
+				printf("%s\n", "o filed1 < inp.txt > outp.txt : executes file1 with input from inp.txt and outputs it to out.txt");
+				printf("%s\n", "o filed1 | file2 | file3 .... > out.txt : outputs piped output to out.txt");
+			}
+			else if(strcmp(arr[0],"cd")==0){
 				change_dir(arr[1]);
 			}
 			else if(strcmp(arr[0],"pwd")==0){
@@ -275,15 +273,11 @@ int main(){
 				arr[size]=NULL;
 				exe_files(arr);
 			}
-   			printf("%s", "prompt>");
+   			printf("%s: ", "$>");
    			fgets(str, str_len, stdin);     // again take the input as "exit" not typed yet
    			str[strlen(str)-1]=0;
    		} 
-   		exit(1);
-	}else{
-		wait(NULL);
-	}
-	//system("clear");
-	//system("clear"); 
+	system("clear");
+	system("clear"); 
 	return 0;
 }
